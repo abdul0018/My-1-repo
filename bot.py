@@ -12,7 +12,7 @@ from telegram.ext import (
 # ==================== SOZLAMALAR ====================
 BOT_TOKEN = "8790387724:AAE_yu0FTWkZf7oB1KLYyOorzfVoihGPHiY"  # <-- YANGI TOKEN QOYING
 ADMIN_ID = 1196260972        # <-- O'zingizning Telegram ID (@userinfobot dan oling)
-ADMIN_USERNAME = "@admin"    # <-- O'zingizning @username
+ADMIN_USERNAME = "@positive_prog"    # <-- O'zingizning @username
 
 # Conversation states
 (REG_NAME, REG_PHONE, REG_ADDRESS,
@@ -67,9 +67,55 @@ def init_db():
     )''')
     c.execute("SELECT COUNT(*) FROM categories")
     if c.fetchone()[0] == 0:
+        # Kategoriyalar
         c.execute("INSERT INTO categories (name, emoji) VALUES (?, ?)", ("Kiyim", "👗"))
         c.execute("INSERT INTO categories (name, emoji) VALUES (?, ?)", ("Elektronika", "📱"))
         c.execute("INSERT INTO categories (name, emoji) VALUES (?, ?)", ("Oziq-ovqat", "🍎"))
+        c.execute("INSERT INTO categories (name, emoji) VALUES (?, ?)", ("Uy-ro'zg'or", "🏠"))
+        conn.commit()
+
+        # Kiyim mahsulotlari (category_id=1)
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Erkaklar ko'ylagi", "Yuqori sifatli paxta ko'ylak. Rangi: oq, ko'k, qora. O'lchamlar: S, M, L, XL", 85000, 1))
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Ayollar ko'ylagi", "Zamonaviy stil, chiroyli naqshlar. O'lchamlar: XS, S, M, L", 95000, 1))
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Jinsi shim", "Premium denim material. Har xil ranglarda mavjud. O'lchamlar: 28-36", 150000, 1))
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Sport kiyim to'plami", "Yengil va qulay sport kiyim. Jacket + shim. O'lchamlar: S-XL", 220000, 1))
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Bolalar kiyimi", "Yumshoq va xavfsiz material. Yoshlar: 2-12. Har xil ranglar", 65000, 1))
+
+        # Elektronika mahsulotlari (category_id=2)
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Simsiz quloqchin", "Bluetooth 5.0, 30 soat batareya. Bass sound texnologiyasi", 180000, 2))
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Power Bank 20000mAh", "Tez zaryadlash (Fast Charge). 2x USB + Type-C. Kompakt dizayn", 120000, 2))
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Smart soat", "Qadamlar, yurak urishi, uyqu monitoring. Su o'tkazmaydigan", 350000, 2))
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("USB-C kabel (2m)", "Tez zaryadlash kabelі. 2 metr uzunlik. Mustahkam material", 25000, 2))
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Mini speaker", "Portable Bluetooth speaker. 360° ovoz. Suv o'tkazmaydigan. 10 soat ishlaydi", 95000, 2))
+
+        # Oziq-ovqat (category_id=3)
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Asal (1 kg)", "Tabiiy tog' asali. Sof va ekologik toza. Har xil o'ramlarda", 75000, 3))
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Quruq mevalar to'plami", "Aralash quruq mevalar: mayiz, o'rik, anjir, xurmo. 500g", 55000, 3))
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Yong'oq assortiment", "Yong'oq, bodom, keshyu, pista aralashmasi. 500g", 80000, 3))
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Zaytun moyi (500ml)", "Extra virgin zaytun moyi. Import, yuqori sifat", 65000, 3))
+
+        # Uy-ro'zg'or (category_id=4)
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Dekorativ yostiq", "Yumshoq va chiroyli. 45x45 sm. Har xil dizaynlar", 45000, 4))
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Aromatik shamlar to'plami", "6 ta shamdan iborat to'plam. Har xil hidlar. Sovg'a uchun ideal", 60000, 4))
+        c.execute("INSERT INTO products (name, description, price, category_id) VALUES (?, ?, ?, ?)",
+                  ("Termosli piyola", "500ml, ikki qavatli stainless steel. Sovuq/issiq ushlab turadi", 85000, 4))
+
         conn.commit()
     conn.close()
 
