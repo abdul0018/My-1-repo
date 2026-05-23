@@ -722,7 +722,10 @@ def main():
         entry_points=[CallbackQueryHandler(order_start, pattern="^order_")],
         states={
             ORDER_QTY: [MessageHandler(filters.TEXT & ~filters.COMMAND, order_qty)],
-            ORDER_CONFIRM: [CallbackQueryHandler(order_confirm, pattern="^(confirm|cancel)_order$")],
+            ORDER_CONFIRM: [
+                CallbackQueryHandler(order_confirm, pattern="^confirm_order$"),
+                CallbackQueryHandler(order_confirm, pattern="^cancel_order$"),
+            ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
         per_message=False
