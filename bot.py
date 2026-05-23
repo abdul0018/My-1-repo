@@ -10,9 +10,9 @@ from telegram.ext import (
 )
 
 # ==================== SOZLAMALAR ====================
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"   # <-- YANGI TOKEN QOYING
-ADMIN_ID = 123456789                # <-- O'zingizning Telegram ID (@userinfobot dan oling)
-ADMIN_USERNAME = "@your_username"   # <-- O'zingizning @username
+BOT_TOKEN = "8790387724:AAE_yu0FTWkZf7oB1KLYyOorzfVoihGPHiY"   # <-- YANGI TOKEN QOYING
+ADMIN_ID = 1799129203                # <-- O'zingizning Telegram ID (@userinfobot dan oling)
+ADMIN_USERNAME = "@positive_prog"   # <-- O'zingizning @username
 
 # Conversation states
 (REG_NAME, REG_PHONE, REG_ADDRESS,
