@@ -6,7 +6,7 @@ from telegram import (
 )
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, CallbackQueryHandler,
-    ContextTypes, ConversationHandler, filters
+    ContextTypes, ConversationHandler, filters1
 )
 
 # ==================== SOZLAMALAR ====================
