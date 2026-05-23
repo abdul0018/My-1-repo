@@ -21,6 +21,13 @@ ADMIN_USERNAME = "@positive_prog"   # <-- O'zingizning @username
  ADMIN_PROD_NAME, ADMIN_PROD_DESC,
  ADMIN_PROD_PRICE, ADMIN_PROD_IMG, ADMIN_PROD_CAT) = range(11)
 
+# Menu button texts — used to escape conversations when user presses a menu button
+MENU_BUTTONS = filters.Regex(
+    r"^(🛍️ Katalog|🛒 Buyurtmalarim|👤 Profilim|📞 Aloqa|"
+    r"📦 Mahsulot qo'shish|🗂️ Kategoriya qo'shish|"
+    r"📋 Barcha buyurtmalar|👥 Foydalanuvchilar|🏠 Asosiy menyu)$"
+)
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -469,15 +476,31 @@ async def order_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ])
     )
     admin_url = f"https://t.me/{ADMIN_USERNAME.lstrip('@')}"
+
+    # 1. Edit the confirmation message to show order summary
     await query.message.edit_text(
-        f"✅ *Buyurtmangiz qabul qilindi!*\n\n"
+        f"✅ *Buyurtmangiz ro'yxatga olindi!*\n\n"
         f"🔢 Buyurtma raqami: *#{order_id}*\n"
-        f"💰 To'lov summasi: *{format_price(total)}*\n\n"
-        f"💳 *To'lov uchun admin bilan bog'laning:*\n{ADMIN_USERNAME}\n\n"
-        f"⏳ Admin siz bilan tez orada bog'lanadi!",
+        f"🏷️ Mahsulot: *{p['name']}*\n"
+        f"📦 Miqdor: *{qty} dona*\n"
+        f"💰 To'lov summasi: *{format_price(total)}*",
+        parse_mode="Markdown"
+    )
+
+    # 2. Send a NEW prominent message directing to admin for payment
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text=(
+            f"💳 *To'lov va yetkazib berish*\n\n"
+            f"Buyurtmangiz uchun to'lov qilish va yetkazib berish vaqtini belgilash uchun "
+            f"quyidagi tugma orqali admin bilan bog'laning:\n\n"
+            f"👨‍💼 Admin: {ADMIN_USERNAME}\n"
+            f"🕐 Ish vaqti: 9:00 — 22:00\n\n"
+            f"⏳ *Admin siz bilan tez orada bog'lanadi!*"
+        ),
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("💬 Admin bilan bog'lanish", url=admin_url)]
+            [InlineKeyboardButton("💬 Adminga to'lov uchun yozish", url=admin_url)]
         ])
     )
     return ConversationHandler.END
@@ -744,6 +767,27 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Bekor qilindi.", reply_markup=main_menu_keyboard())
     return ConversationHandler.END
 
+# ==================== MENU ESCAPE (conversation fallback) ====================
+async def menu_escape(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Called when user presses a menu button while inside a conversation.
+    Cancels the conversation and routes to the correct handler."""
+    text = update.message.text
+    context.user_data.clear()
+
+    routing = {
+        "🛍️ Katalog": show_catalog,
+        "🛒 Buyurtmalarim": my_orders,
+        "👤 Profilim": my_profile,
+        "📞 Aloqa": contact,
+        "📋 Barcha buyurtmalar": admin_all_orders,
+        "👥 Foydalanuvchilar": admin_users,
+        "🏠 Asosiy menyu": back_main,
+    }
+    handler = routing.get(text)
+    if handler:
+        await handler(update, context)
+    return ConversationHandler.END
+
 # ==================== ERROR HANDLER ====================
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error("Exception while handling an update:", exc_info=context.error)
@@ -757,11 +801,14 @@ def main():
     reg_cb_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(register_callback, pattern="^register$")],
         states={
-            REG_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_name)],
-            REG_PHONE: [MessageHandler(filters.CONTACT | (filters.TEXT & ~filters.COMMAND), reg_phone)],
-            REG_ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_address)],
+            REG_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, reg_name)],
+            REG_PHONE: [MessageHandler(filters.CONTACT | (filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS), reg_phone)],
+            REG_ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, reg_address)],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[
+            CommandHandler("cancel", cancel),
+            MessageHandler(MENU_BUTTONS, menu_escape),
+        ],
         per_message=False
     )
 
@@ -769,11 +816,14 @@ def main():
     reg_cmd_conv = ConversationHandler(
         entry_points=[CommandHandler("register", register_cmd)],
         states={
-            REG_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_name)],
-            REG_PHONE: [MessageHandler(filters.CONTACT | (filters.TEXT & ~filters.COMMAND), reg_phone)],
-            REG_ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_address)],
+            REG_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, reg_name)],
+            REG_PHONE: [MessageHandler(filters.CONTACT | (filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS), reg_phone)],
+            REG_ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, reg_address)],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[
+            CommandHandler("cancel", cancel),
+            MessageHandler(MENU_BUTTONS, menu_escape),
+        ],
         per_message=False
     )
 
@@ -781,13 +831,16 @@ def main():
     order_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(order_start, pattern="^order_")],
         states={
-            ORDER_QTY: [MessageHandler(filters.TEXT & ~filters.COMMAND, order_qty)],
+            ORDER_QTY: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, order_qty)],
             ORDER_CONFIRM: [
                 CallbackQueryHandler(order_confirm, pattern="^confirm_order$"),
                 CallbackQueryHandler(order_confirm, pattern="^cancel_order$"),
             ],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[
+            CommandHandler("cancel", cancel),
+            MessageHandler(MENU_BUTTONS, menu_escape),
+        ],
         per_message=False
     )
 
@@ -795,17 +848,20 @@ def main():
     add_prod_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex("^📦 Mahsulot qo'shish$"), add_product_start)],
         states={
-            ADMIN_PROD_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_name)],
-            ADMIN_PROD_DESC: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_desc)],
-            ADMIN_PROD_PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_price)],
+            ADMIN_PROD_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, add_product_name)],
+            ADMIN_PROD_DESC: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, add_product_desc)],
+            ADMIN_PROD_PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, add_product_price)],
             ADMIN_PROD_IMG: [
                 MessageHandler(filters.PHOTO, add_product_img),
                 CommandHandler("skip", add_product_skip_img),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_img),
+                MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, add_product_img),
             ],
             ADMIN_PROD_CAT: [CallbackQueryHandler(add_product_cat, pattern="^addcat_")],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[
+            CommandHandler("cancel", cancel),
+            MessageHandler(MENU_BUTTONS, menu_escape),
+        ],
         per_message=False
     )
 
@@ -813,9 +869,12 @@ def main():
     add_cat_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex("^🗂️ Kategoriya qo'shish$"), add_category_start)],
         states={
-            ADMIN_CAT_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_category_name)],
+            ADMIN_CAT_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, add_category_name)],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[
+            CommandHandler("cancel", cancel),
+            MessageHandler(MENU_BUTTONS, menu_escape),
+        ],
         per_message=False
     )
 
